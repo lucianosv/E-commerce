@@ -14,18 +14,39 @@ sync:
   paths:
     - pipeline
     - testes
+    - notebooks
 
 resources:
   jobs:
     pipeline_ecommerce:
       name: Pipeline E-commerce
       tasks:
+        # 1. Bronze: ingestaum dos dados do data lake (S3/Supabase) para ecommerce.bronze.*
+        - task_key: ingestao_bronze
+          notebook_task:
+            notebook_path: ./pipeline/bronze/01_ingestao_bronze_gabarito
+
+        # 2. Silver: pipeline SDP que processa bronze -> silver com expectations e deduplicacau
         - task_key: run_pipeline
+          depends_on:
+            - task_key: ingestao_bronze
           pipeline_task:
             pipeline_id: bf308547-b804-4997-aed4-522cb695cc28
-        - task_key: run_tests
+
+        # 3. Gold: agregacues de negocuo a partir da silver (vendas_temporais, vendas_produtos,
+        #    clientes_segmentacao, precos_competitividade, vendas_detalhadas)
+        - task_key: run_gold
           depends_on:
             - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ./notebooks/aula-03/02_gold
+            base_parameters:
+              catalogo: ecommerce
+
+        # 4. Testes: validacuo de qualidade das tabelas silver e gold
+        - task_key: run_tests
+          depends_on:
+            - task_key: run_gold
           notebook_task:
             notebook_path: ./testes/04_testes_qualidade
             base_parameters:
