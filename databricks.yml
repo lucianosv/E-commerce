@@ -1,0 +1,32 @@
+bundle:
+  name: ecommerce_silver
+
+variables:
+  catalogo:
+    default: ecommerce
+
+targets:
+  dev:
+    mode: development
+    default: true
+
+sync:
+  paths:
+    - pipeline
+    - testes
+
+resources:
+  jobs:
+    pipeline_ecommerce:
+      name: Pipeline E-commerce
+      tasks:
+        - task_key: run_pipeline
+          pipeline_task:
+            pipeline_id: bf308547-b804-4997-aed4-522cb695cc28
+        - task_key: run_tests
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ./testes/04_testes_qualidade
+            base_parameters:
+              catalogo: ecommerce
