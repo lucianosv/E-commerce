@@ -1,0 +1,51 @@
+# Pipeline diário: data lake → bronze (Aula 2) → silver → gold → testes (Aula 3) → documentação (Aula 4).
+# Na Aula 2 o Job é criado à mão pela interface, só com a ingestão; na Aula 3 ele vira código aqui, completo.
+resources:
+  jobs:
+    pipeline_ecommerce:
+      name: Pipeline E-commerce
+
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/Sao_Paulo
+        # A ingestão precisa das chaves do Supabase no secret scope (imersao/s3_key e s3_secret).
+        # Depois de criá-las, troque para UNPAUSED.
+        pause_status: PAUSED
+
+      email_notifications:
+        on_failure:
+          - ${workspace.current_user.userName}
+
+      parameters:
+        - name: catalogo
+          default: ${var.catalogo}
+
+      tasks:
+        - task_key: ingestao_bronze
+          notebook_task:
+            # o Job roda a versão completa; 01_ingestao_bronze.py é o notebook com lacunas da aula
+            notebook_path: ../aula-02-python-engenharia/01_ingestao_bronze_gabarito.py
+
+        - task_key: silver
+          depends_on:
+            - task_key: ingestao_bronze
+          notebook_task:
+            notebook_path: ../aula-03-claude-code/01_silver.py
+
+        - task_key: gold
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../aula-03-claude-code/02_gold.sql
+
+        - task_key: testes_qualidade
+          depends_on:
+            - task_key: gold
+          notebook_task:
+            notebook_path: ../aula-03-claude-code/testes/03_testes_qualidade.py
+
+        - task_key: documentar_para_genie
+          depends_on:
+            - task_key: testes_qualidade
+          notebook_task:
+            notebook_path: ../aula-04-genie/01_preparar_dados_para_ia.sql

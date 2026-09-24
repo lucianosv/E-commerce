@@ -1,0 +1,9 @@
+# Aula 3: o mesmo painel lendo da gold, atualizada pelo Job diário
+resources:
+  dashboards:
+    diretoria_gold:
+      display_name: Diretoria E-commerce
+      file_path: ../aula-03-claude-code/dashboard/diretoria_ecommerce_gold.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalogo}
+      dataset_schema: gold

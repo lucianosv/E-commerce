@@ -1,0 +1,202 @@
+-- Databricks notebook source
+-- MAGIC %md
+-- MAGIC # O Desafio
+-- MAGIC ### Imersão Jornada de Dados no Databricks · Aula 1
+-- MAGIC
+-- MAGIC Você acabou de ser contratado como analista de dados de um **e-commerce brasileiro** que vende pelo site e em uma loja física.
+-- MAGIC
+-- MAGIC Antes mesmo de você estruturar qualquer coisa, a empresa já precisa de respostas. Três diretores mandaram mensagem no primeiro dia, e todos querem para ontem.
+-- MAGIC
+-- MAGIC Este notebook apresenta **o desafio inteiro**: quem pergunta, o que pergunta, com quais dados e o que você precisa entregar no fim do dia. A resolução, passo a passo, está no notebook **`01_sql_e_dashboard`**.
+-- MAGIC
+-- MAGIC > **Sugestão:** leia este notebook inteiro antes da aula. Tente responder pelo menos uma pergunta de cada diretoria sozinho. Depois compare com a resolução.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 1. A empresa
+-- MAGIC
+-- MAGIC | Indicador | Valor |
+-- MAGIC |---|---|
+-- MAGIC | Período dos dados | 13/12/2025 a 11/01/2026 (30 dias) |
+-- MAGIC | Vendas realizadas | 3.020 |
+-- MAGIC | Produtos no catálogo | 215, em 11 categorias |
+-- MAGIC | Clientes ativos | 50, em 22 estados |
+-- MAGIC | Canais de venda | 2: e-commerce e loja física |
+-- MAGIC | Concorrentes monitorados | 4: Mercado Livre, Amazon, Magalu e Shopee |
+-- MAGIC
+-- MAGIC ### O que dói hoje
+-- MAGIC
+-- MAGIC - **Cada área tem a sua versão da verdade.** Ninguém confia no número do outro.
+-- MAGIC - **Relatórios manuais.** Um analista copia dado de sistema para planilha, todo mês.
+-- MAGIC - **Dado velho.** Quando o relatório fica pronto, a decisão já foi tomada no chute.
+-- MAGIC - **Ninguém olha a concorrência.** Os preços dos concorrentes são coletados, mas nunca analisados.
+-- MAGIC
+-- MAGIC Você foi contratado para mudar isso.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 2. Os três diretores
+-- MAGIC
+-- MAGIC ### Diretor Comercial (Vendas)
+-- MAGIC > "Preciso ver a receita antes da reunião das 9h. Quero saber quanto vendemos, se o site vende mais que a loja, e quais produtos e categorias puxam o resultado. Hoje eu peço para o analista e demora dois dias."
+-- MAGIC
+-- MAGIC ### Diretora de Customer Success (Clientes)
+-- MAGIC > "Preciso saber quem são os nossos melhores clientes para cuidar bem deles. E preciso ver de onde eles são, porque vou montar a equipe regional. Hoje recebo uma planilha toda segunda-feira, já desatualizada."
+-- MAGIC
+-- MAGIC ### Diretor de Pricing (Preços)
+-- MAGIC > "Preciso saber se estamos mais caros que a concorrência, em quais produtos e em quais categorias. Hoje ninguém faz essa análise."
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 3. Os dados que você tem
+-- MAGIC
+-- MAGIC Quatro arquivos CSV, na pasta `dados/` do repositório.
+-- MAGIC
+-- MAGIC | Tabela | Linhas | Uma linha é... | Colunas |
+-- MAGIC |---|---:|---|---|
+-- MAGIC | `vendas` | 3.020 | uma venda | `id_venda`, `data_venda`, `id_cliente`, `id_produto`, `canal_venda`, `quantidade`, `preco_unitario` |
+-- MAGIC | `produtos` | 215 | um produto do catálogo | `id_produto`, `nome_produto`, `categoria`, `marca`, `preco_atual`, `data_criacao` |
+-- MAGIC | `clientes` | 50 | um cliente | `id_cliente`, `nome_cliente`, `estado`, `pais`, `data_cadastro` |
+-- MAGIC | `preco_competidores` | 728 | o preço de um produto em um concorrente | `id_produto`, `nome_concorrente`, `preco_concorrente`, `data_coleta` |
+-- MAGIC
+-- MAGIC ### Como as tabelas se ligam
+-- MAGIC
+-- MAGIC ```
+-- MAGIC vendas.id_produto  ──►  produtos.id_produto  ◄──  preco_competidores.id_produto
+-- MAGIC vendas.id_cliente  ──►  clientes.id_cliente
+-- MAGIC ```
+-- MAGIC
+-- MAGIC ### Um cálculo que você vai usar o tempo todo
+-- MAGIC
+-- MAGIC A tabela de vendas **não tem** uma coluna de receita. A receita de cada venda é:
+-- MAGIC
+-- MAGIC ```
+-- MAGIC receita = quantidade × preco_unitario
+-- MAGIC ```
+-- MAGIC
+-- MAGIC ### Atenção
+-- MAGIC
+-- MAGIC Os dados vieram de sistemas reais, e dado real tem defeito. Pelo menos um problema de qualidade está escondido nessas tabelas, e ele muda o valor da receita dependendo de como você escreve a consulta. Fique de olho.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 4. As 12 perguntas
+-- MAGIC
+-- MAGIC Cada pergunta vem com o **conceito de SQL** que resolve. Elas estão em ordem: cada uma usa o que você aprendeu na anterior.
+-- MAGIC
+-- MAGIC ### Primeiro, conhecer o dado
+-- MAGIC
+-- MAGIC | # | Pergunta | Conceito |
+-- MAGIC |---|---|---|
+-- MAGIC | 01 | Que dados temos na tabela de vendas? | `SELECT` |
+-- MAGIC | 02 | Quais foram as maiores vendas? | `ORDER BY` |
+-- MAGIC | 03 | Me mostra só as 10 primeiras. | `LIMIT` |
+-- MAGIC | 04 | E só as vendas da loja física? | `WHERE` |
+-- MAGIC
+-- MAGIC ### Diretoria de Vendas
+-- MAGIC
+-- MAGIC | # | Pergunta | Conceito |
+-- MAGIC |---|---|---|
+-- MAGIC | 05 | Quanto faturamos no período? Qual o ticket médio? | `COUNT`, `SUM`, `AVG` |
+-- MAGIC | 06 | Qual canal vende mais: o site ou a loja? | `GROUP BY` |
+-- MAGIC | 07 | Qual categoria vende mais? Quais são os 10 produtos com mais receita? | `JOIN` |
+-- MAGIC | 08 | Existe venda de produto que não está no catálogo? Quanto isso representa? | `LEFT JOIN` |
+-- MAGIC
+-- MAGIC ### Diretoria de Clientes
+-- MAGIC
+-- MAGIC | # | Pergunta | Conceito |
+-- MAGIC |---|---|---|
+-- MAGIC | 09 | Quem são os 10 melhores clientes? De quais estados eles são? | `JOIN` + `GROUP BY` |
+-- MAGIC
+-- MAGIC ### Diretoria de Pricing
+-- MAGIC
+-- MAGIC | # | Pergunta | Conceito |
+-- MAGIC |---|---|---|
+-- MAGIC | 10 | Estamos mais caros que o mercado? Em quais categorias? | `AVG`, `MIN`, `MAX` |
+-- MAGIC | 11 | Quais produtos estão mais caros que **todos** os concorrentes? | `HAVING` |
+-- MAGIC
+-- MAGIC ### A entrega
+-- MAGIC
+-- MAGIC | # | Pergunta | Conceito |
+-- MAGIC |---|---|---|
+-- MAGIC | 12 | Como os diretores veem tudo isso sem abrir um notebook? | Dashboard |
+-- MAGIC
+-- MAGIC ### Bônus (para casa)
+-- MAGIC
+-- MAGIC | Pergunta | Conceito |
+-- MAGIC |---|---|
+-- MAGIC | Como separar os clientes em VIP, TOP_TIER e REGULAR? | `CASE WHEN` |
+-- MAGIC | Quais são os 3 produtos mais vendidos de cada categoria? | `ROW_NUMBER()` com `PARTITION BY` |
+-- MAGIC | Quanto cada canal representa da receita, em %? | `SUM() OVER ()` |
+-- MAGIC | A receita de hoje foi maior que a de ontem? | `LAG()` |
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 5. O que você entrega no fim do dia
+-- MAGIC
+-- MAGIC Um **dashboard publicado** com uma página por diretoria:
+-- MAGIC
+-- MAGIC | Página | O que precisa mostrar |
+-- MAGIC |---|---|
+-- MAGIC | **Vendas** | Receita, número de vendas e ticket médio; receita por dia e por canal; receita por categoria; top 10 produtos |
+-- MAGIC | **Clientes** | Quantos clientes compraram; receita por estado; ranking dos clientes |
+-- MAGIC | **Pricing** | Quantos produtos monitoramos; quantos estão mais caros que todos os concorrentes; diferença média por categoria; lista de produtos em alerta |
+-- MAGIC
+-- MAGIC ### Como saber se você acertou
+-- MAGIC
+-- MAGIC Três números para conferir. Se os seus baterem, você está no caminho certo:
+-- MAGIC
+-- MAGIC | Conferência | Valor |
+-- MAGIC |---|---|
+-- MAGIC | Receita total do período | R$ 974.077,28 |
+-- MAGIC | Vendas no e-commerce | 2.155 |
+-- MAGIC | Produtos mais caros que todos os concorrentes | 35 |
+-- MAGIC
+-- MAGIC As demais respostas estão no `README.md` desta pasta.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 6. Como você vai trabalhar
+-- MAGIC
+-- MAGIC Tudo acontece no **Databricks Free Edition**, sem instalar nada no seu computador.
+-- MAGIC
+-- MAGIC ```
+-- MAGIC  CSVs ──► Tabelas Delta ──► SQL no notebook ──► Dashboard
+-- MAGIC  (upload)  (ecommerce.bronze)  (as 12 perguntas)   (os 3 diretores)
+-- MAGIC ```
+-- MAGIC
+-- MAGIC 1. **Setup:** criar o catálogo `ecommerce` e os schemas, e subir os 4 CSVs como tabelas na bronze.
+-- MAGIC 2. **CSV × Tabela:** transformar os arquivos em tabelas e ver por que isso importa.
+-- MAGIC 3. **As 12 perguntas**, uma diretoria de cada vez.
+-- MAGIC 4. **O dashboard**, com uma página por diretoria.
+-- MAGIC
+-- MAGIC Quando estiver pronto, abra o notebook **`01_sql_e_dashboard`** e mãos à obra.
+
+-- COMMAND ----------
+
+-- MAGIC %md
+-- MAGIC ---
+-- MAGIC ## 7. E depois?
+-- MAGIC
+-- MAGIC Hoje você vai responder os diretores **na mão**. Nos próximos dias, o mesmo projeto evolui:
+-- MAGIC
+-- MAGIC | Dia | Tema | A pergunta do dia |
+-- MAGIC |---|---|---|
+-- MAGIC | **1** | SQL & Dashboard | Como respondo os diretores? |
+-- MAGIC | 2 | Python & Engenharia de Dados | De onde vieram esses dados, e como faço eles chegarem sozinhos? |
+-- MAGIC | 3 | Claude Code & Engenharia de Dados | Como transformo isso em um projeto profissional, com testes e deploy? |
+-- MAGIC | 4 | Genie | Como o diretor pergunta sozinho, em português? |
+-- MAGIC
+-- MAGIC **No dia 1 você responde o diretor. No dia 4 ele não precisa mais de você para perguntar.**

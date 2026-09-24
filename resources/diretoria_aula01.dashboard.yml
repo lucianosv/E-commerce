@@ -1,0 +1,9 @@
+# Aula 1: as consultas feitas à mão sobre ecommerce.bronze
+resources:
+  dashboards:
+    diretoria_aula01:
+      display_name: Diretoria E-commerce (Aula 1)
+      file_path: ../aula-01-sql-dashboard/dashboard/diretoria_ecommerce.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalogo}
+      dataset_schema: bronze
