@@ -23,7 +23,7 @@ resources:
         # 1. Bronze: ingestao dos dados do data lake (S3/Supabase) para ecommerce.bronze.*
         - task_key: ingestao_bronze
           notebook_task:
-            notebook_path: ./pipeline/bronze/01_ingestao_bronze_gabarito
+            notebook_path: ./pipeline/bronze/01_ingestao_bronze_gabarito.py
 
         # 2. Silver + Gold: pipeline SDP que processa bronze -> silver (tabelas) e
         #    silver -> gold (materialized views) com expectations e deduplicacao
@@ -38,6 +38,6 @@ resources:
           depends_on:
             - task_key: run_pipeline
           notebook_task:
-            notebook_path: ./testes/04_testes_qualidade
+            notebook_path: ./testes/04_testes_qualidade.py
             base_parameters:
               catalogo: ecommerce
