@@ -140,6 +140,44 @@ ORDER BY v.ranking_receita
 
 ---
 
+## QUALIDADE DOS DADOS (gold.qualidade_dados)
+
+Tabela: `ecommerce.gold.qualidade_dados` — placar de qualidade dos dados. Uma linha por regra,
+ com quantas linhas e quanta receita cada problema afeta. Use para perguntas sobre
+ confiabilidade dos números e problemas conhecidos.
+
+Colunas: `regra` (descrição), `tabela` (origem silver), `severidade` (ALERTA,
+ INFORMATIVO ou CORRIGIDO), `linhas_afetadas`, `receita_afetada` (em R$, vazia se
+ a regra não envolve vendas).
+
+### Exemplos SQL
+
+**Quanta receita tem problema de cadastro?**
+```sql
+SELECT regra, linhas_afetadas, receita_afetada
+FROM ecommerce.gold.qualidade_dados
+WHERE severidade = 'ALERTA' AND receita_afetada IS NOT NULL
+ORDER BY receita_afetada DESC
+```
+
+**Quantos alertas de qualidade existem e em quais tabelas?**
+```sql
+SELECT tabela, COUNT(*) as alertas, SUM(linhas_afetadas) as linhas
+FROM ecommerce.gold.qualidade_dados
+WHERE severidade = 'ALERTA'
+GROUP BY tabela
+ORDER BY alertas DESC
+```
+
+**Qual o impacto financeiro dos problemas de qualidade?**
+```sql
+SELECT SUM(receita_afetada) as receita_total_afetada,
+       COUNT(*) as regras_com_impacto
+FROM ecommerce.gold.qualidade_dados
+WHERE receita_afetada IS NOT NULL
+```
+
+
 ## JOINS
 
 Relacionamento entre tabelas:
@@ -157,6 +195,8 @@ Relacionamento entre tabelas:
 4. Quantos clientes VIP temos e quanto eles representam da receita?
 5. Qual região do Brasil gera mais receita?
 6. Quantos produtos estão mais caros que todos os concorrentes?
+7. Quanta receita tem problema de qualidade?
+8. Posso confiar nos números? Quantos alertas existem?
 
 ---
 
