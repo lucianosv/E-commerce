@@ -26,8 +26,8 @@ Pipeline end-to-end de dados de um **e-commerce brasileiro** com vendas em dois 
 
 ### 📊 Resultados
 
-* **5 tabelas gold** prontas para análise
-* **Job diário** orquestrado (ingestão → transformação → testes)
+* **6 tabelas gold** prontas para análise (vendas, produtos, clientes, preços, detalhadas, qualidade)
+* **Job diário** orquestrado (ingestão → transformação → testes → documentação)
 * **3 dashboards** publicados (Bronze, Gold 3 páginas, métricas em português)
 * **Genie Space** configurado com 10 exemplos SQL e 6 starter questions
 * **100% versionado** no Git
@@ -72,6 +72,9 @@ E-commerce/
 │       └── qualidade_dados.sql
 ├── testes/
 │   └── 04_testes_qualidade.py   # Testes de reconciliação e validação
+├── notebooks/
+│   └── aula-04/
+│       └── 01_preparar_dados_para_ia.sql  # Documenta tabelas gold para Genie
 ├── resources/
 │   ├── pipeline_ecommerce.job.yml        # Definição do Job diário
 │   ├── diretoria_aula01.dashboard.yml    # Dashboard Bronze
@@ -235,6 +238,12 @@ databricks jobs run-now "Pipeline E-commerce" -p ecommerce
 databricks jobs runs list -p ecommerce
 ```
 
+**Estrutura do Job:**
+1. `ingestao_bronze` - Carrega dados do data lake para bronze
+2. `run_pipeline` - Pipeline Lakeflow (bronze → silver → gold)
+3. `run_tests` - Testes de qualidade e reconciliação
+4. `preparar_dados_para_ia` - Aplica comentários nas tabelas gold
+
 ---
 
 ## ✅ Validação e Testes
@@ -335,7 +344,15 @@ databricks jobs run-now "Pipeline E-commerce" -p ecommerce
 ```
 
 ### Genie não responde corretamente
-Executar notebook `aula-04-genie/01_preparar_dados_para_ia` (aplica comentários nas tabelas)
+**Causa**: Comentários não aplicados nas tabelas gold
+**Solução**: O Job agora inclui task `preparar_dados_para_ia` que aplica comentários automaticamente
+
+### Tabela gold.qualidade_dados não foi criada
+**Causa**: Pipeline Lakeflow não processou o arquivo `pipeline/gold/qualidade_dados.sql`
+**Solução**: Executar pipeline update manualmente:
+```bash
+databricks pipelines start-update bf308547-b804-4997-aed4-522cb695cc28 -p ecommerce
+```
 
 ---
 
