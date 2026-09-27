@@ -1,0 +1,1551 @@
+{
+  "datasets": [
+    {
+      "name": "ds_vendas",
+      "displayName": "Vendas (gold)",
+      "columns": [
+        {
+          "displayName": "Vendas",
+          "description": "Quantidade de vendas",
+          "expression": "SUM(`total_vendas`)"
+        },
+        {
+          "displayName": "Ticket médio",
+          "description": "Receita dividida pelo número de vendas",
+          "expression": "SUM(`receita`) / SUM(`total_vendas`)"
+        }
+      ],
+      "queryLines": [
+        "SELECT data, dia_semana, dia_semana_num, hora, canal_venda, total_vendas, itens_vendidos, receita\n",
+        "FROM vendas_temporais\n"
+      ]
+    },
+    {
+      "name": "ds_top_produtos",
+      "displayName": "Top 10 produtos (gold)",
+      "queryLines": [
+        "SELECT nome_produto, categoria, itens_vendidos, receita, ranking_receita\n",
+        "FROM vendas_produtos\n",
+        "WHERE ranking_receita <= 10\n",
+        "ORDER BY ranking_receita\n"
+      ]
+    },
+    {
+      "name": "ds_clientes",
+      "displayName": "Clientes (gold)",
+      "queryLines": [
+        "SELECT id_cliente, nome_cliente, estado, regiao, segmento_cliente, total_compras, receita, ticket_medio, ranking_receita\n",
+        "FROM clientes_segmentacao\n",
+        "ORDER BY ranking_receita\n"
+      ]
+    },
+    {
+      "name": "ds_precos",
+      "displayName": "Competitividade (gold)",
+      "queryLines": [
+        "SELECT\n",
+        "  id_produto, nome_produto, categoria, nosso_preco, preco_maximo_concorrentes,\n",
+        "  diferenca_pct_vs_media / 100 AS diferenca_vs_media,\n",
+        "  classificacao_preco, receita\n",
+        "FROM precos_competitividade\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "vendas",
+      "displayName": "Vendas",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "titulo_vendas",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Diretoria de Vendas\n",
+                "\n",
+                "Quanto vendemos, em qual canal e com quais produtos. Dados de `ecommerce.gold`, atualizados pelo Job diário."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_data",
+            "queries": [
+              {
+                "name": "f_data_q",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "data",
+                      "expression": "`data`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "data",
+                    "displayName": "Período",
+                    "queryName": "f_data_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Período"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "f_canal",
+            "queries": [
+              {
+                "name": "f_canal_q",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "canal_venda",
+                      "expression": "`canal_venda`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "canal_venda",
+                    "displayName": "Canal",
+                    "queryName": "f_canal_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Canal"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_receita",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "sum(receita)",
+                      "expression": "SUM(`receita`)"
+                    },
+                    {
+                      "name": "daily(data)",
+                      "expression": "DATE_TRUNC(\"DAY\", `data`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(receita)",
+                  "displayName": "Receita",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(data)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_vendas",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "measure(Vendas)",
+                      "expression": "MEASURE(`Vendas`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Vendas)",
+                  "displayName": "Vendas"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Vendas"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_ticket",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "measure(Ticket médio)",
+                      "expression": "MEASURE(`Ticket médio`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(Ticket médio)",
+                  "displayName": "Ticket médio",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Ticket médio"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_itens",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "sum(itens_vendidos)",
+                      "expression": "SUM(`itens_vendidos`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(itens_vendidos)",
+                  "displayName": "Itens vendidos"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Itens vendidos"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 4,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_diaria",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "daily(data)",
+                      "expression": "DATE_TRUNC(\"DAY\", `data`)"
+                    },
+                    {
+                      "name": "sum(receita)",
+                      "expression": "SUM(`receita`)"
+                    },
+                    {
+                      "name": "canal_venda",
+                      "expression": "`canal_venda`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(data)",
+                  "displayName": "Dia",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(receita)",
+                  "displayName": "Receita",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "canal_venda",
+                  "displayName": "Canal",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita diária por canal"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_dia_semana",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "dia_semana",
+                      "expression": "`dia_semana`"
+                    },
+                    {
+                      "name": "sum(receita)",
+                      "expression": "SUM(`receita`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dia_semana",
+                  "displayName": "Dia da semana",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "custom-order",
+                      "orderedValues": [
+                        "Domingo",
+                        "Segunda",
+                        "Terça",
+                        "Quarta",
+                        "Quinta",
+                        "Sexta",
+                        "Sábado"
+                      ]
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(receita)",
+                  "displayName": "Receita",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita por dia da semana"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "vendas_hora",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_vendas",
+                  "fields": [
+                    {
+                      "name": "hora",
+                      "expression": "`hora`"
+                    },
+                    {
+                      "name": "measure(Vendas)",
+                      "expression": "MEASURE(`Vendas`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "hora",
+                  "displayName": "Hora",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(Vendas)",
+                  "displayName": "Vendas",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Vendas por hora do dia"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "top_produtos",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_top_produtos",
+                  "fields": [
+                    {
+                      "name": "ranking_receita",
+                      "expression": "`ranking_receita`"
+                    },
+                    {
+                      "name": "nome_produto",
+                      "expression": "`nome_produto`"
+                    },
+                    {
+                      "name": "categoria",
+                      "expression": "`categoria`"
+                    },
+                    {
+                      "name": "itens_vendidos",
+                      "expression": "`itens_vendidos`"
+                    },
+                    {
+                      "name": "receita",
+                      "expression": "`receita`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "ranking_receita",
+                    "displayName": "#"
+                  },
+                  {
+                    "fieldName": "nome_produto",
+                    "displayName": "Produto"
+                  },
+                  {
+                    "fieldName": "categoria",
+                    "displayName": "Categoria"
+                  },
+                  {
+                    "fieldName": "itens_vendidos",
+                    "displayName": "Itens"
+                  },
+                  {
+                    "fieldName": "receita",
+                    "displayName": "Receita",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Top 10 produtos por receita"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "clientes",
+      "displayName": "Clientes",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "titulo_clientes",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Diretoria de Clientes\n",
+                "\n",
+                "Quem são os melhores clientes e onde eles estão."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_clientes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "count(id_cliente)",
+                      "expression": "COUNT(`id_cliente`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(id_cliente)",
+                  "displayName": "Clientes"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Clientes"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_vip",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "count(id_cliente)",
+                      "expression": "COUNT(`id_cliente`)"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "filters": [
+                    {
+                      "expression": "`segmento_cliente` = 'VIP'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(id_cliente)",
+                  "displayName": "Clientes VIP"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Clientes VIP",
+                "description": "Receita a partir de R$ 22 mil no período",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_receita_vip",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "sum(receita)",
+                      "expression": "SUM(`receita`)"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "filters": [
+                    {
+                      "expression": "`segmento_cliente` = 'VIP'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(receita)",
+                  "displayName": "Receita dos VIP",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita dos VIP"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "pie_segmento",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "count(id_cliente)",
+                      "expression": "COUNT(`id_cliente`)"
+                    },
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(id_cliente)",
+                  "displayName": "Clientes",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "segmento_cliente",
+                  "displayName": "Segmento",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "VIP",
+                        "color": "#0072B2"
+                      },
+                      {
+                        "value": "TOP_TIER",
+                        "color": "#56B4E9"
+                      },
+                      {
+                        "value": "REGULAR",
+                        "color": "#999999"
+                      }
+                    ]
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Clientes por segmento"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "receita_regiao",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "sum(receita)",
+                      "expression": "SUM(`receita`)"
+                    },
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(receita)",
+                  "displayName": "Receita",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "BRL",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "regiao",
+                  "displayName": "Região",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "segmento_cliente",
+                  "displayName": "Segmento",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "VIP",
+                        "color": "#0072B2"
+                      },
+                      {
+                        "value": "TOP_TIER",
+                        "color": "#56B4E9"
+                      },
+                      {
+                        "value": "REGULAR",
+                        "color": "#999999"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Receita por região"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "top_clientes",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_clientes",
+                  "fields": [
+                    {
+                      "name": "ranking_receita",
+                      "expression": "`ranking_receita`"
+                    },
+                    {
+                      "name": "nome_cliente",
+                      "expression": "`nome_cliente`"
+                    },
+                    {
+                      "name": "estado",
+                      "expression": "`estado`"
+                    },
+                    {
+                      "name": "regiao",
+                      "expression": "`regiao`"
+                    },
+                    {
+                      "name": "segmento_cliente",
+                      "expression": "`segmento_cliente`"
+                    },
+                    {
+                      "name": "total_compras",
+                      "expression": "`total_compras`"
+                    },
+                    {
+                      "name": "receita",
+                      "expression": "`receita`"
+                    },
+                    {
+                      "name": "ticket_medio",
+                      "expression": "`ticket_medio`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "ranking_receita",
+                    "displayName": "#"
+                  },
+                  {
+                    "fieldName": "nome_cliente",
+                    "displayName": "Cliente"
+                  },
+                  {
+                    "fieldName": "estado",
+                    "displayName": "UF"
+                  },
+                  {
+                    "fieldName": "regiao",
+                    "displayName": "Região"
+                  },
+                  {
+                    "fieldName": "segmento_cliente",
+                    "displayName": "Segmento"
+                  },
+                  {
+                    "fieldName": "total_compras",
+                    "displayName": "Compras"
+                  },
+                  {
+                    "fieldName": "receita",
+                    "displayName": "Receita",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "ticket_medio",
+                    "displayName": "Ticket médio",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Ranking de clientes"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "pricing",
+      "displayName": "Pricing",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "titulo_pricing",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Diretoria de Pricing\n",
+                "\n",
+                "Nosso preço contra Mercado Livre, Amazon, Magalu e Shopee. Diferença positiva = estamos mais caros."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_monitorados",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "count(id_produto)",
+                      "expression": "COUNT(`id_produto`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(id_produto)",
+                  "displayName": "Produtos monitorados"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Produtos monitorados"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_mais_caros",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "count(id_produto)",
+                      "expression": "COUNT(`id_produto`)"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "filters": [
+                    {
+                      "expression": "`classificacao_preco` = 'MAIS_CARO_QUE_TODOS'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(id_produto)",
+                  "displayName": "Mais caros que todos"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Mais caros que todos",
+                "description": "Preço acima do maior preço entre os concorrentes",
+                "showDescription": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "kpi_diferenca",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "avg(diferenca_vs_media)",
+                      "expression": "AVG(`diferenca_vs_media`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(diferenca_vs_media)",
+                  "displayName": "Diferença média vs mercado",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Diferença média vs mercado"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "diferenca_categoria",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "categoria",
+                      "expression": "`categoria`"
+                    },
+                    {
+                      "name": "avg(diferenca_vs_media)",
+                      "expression": "AVG(`diferenca_vs_media`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "avg(diferenca_vs_media)",
+                  "displayName": "Diferença média",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "categoria",
+                  "displayName": "Categoria",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Diferença média de preço por categoria"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "pie_classificacao",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "count(id_produto)",
+                      "expression": "COUNT(`id_produto`)"
+                    },
+                    {
+                      "name": "classificacao_preco",
+                      "expression": "`classificacao_preco`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "count(id_produto)",
+                  "displayName": "Produtos",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "classificacao_preco",
+                  "displayName": "Classificação",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "MAIS_CARO_QUE_TODOS",
+                        "color": "#D55E00"
+                      },
+                      {
+                        "value": "ACIMA_DA_MEDIA",
+                        "color": "#E69F00"
+                      },
+                      {
+                        "value": "NA_MEDIA",
+                        "color": "#999999"
+                      },
+                      {
+                        "value": "ABAIXO_DA_MEDIA",
+                        "color": "#56B4E9"
+                      },
+                      {
+                        "value": "MAIS_BARATO_QUE_TODOS",
+                        "color": "#009E73"
+                      }
+                    ]
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Posição de preço"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "alertas",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_precos",
+                  "fields": [
+                    {
+                      "name": "nome_produto",
+                      "expression": "`nome_produto`"
+                    },
+                    {
+                      "name": "categoria",
+                      "expression": "`categoria`"
+                    },
+                    {
+                      "name": "nosso_preco",
+                      "expression": "`nosso_preco`"
+                    },
+                    {
+                      "name": "preco_maximo_concorrentes",
+                      "expression": "`preco_maximo_concorrentes`"
+                    },
+                    {
+                      "name": "diferenca_vs_media",
+                      "expression": "`diferenca_vs_media`"
+                    },
+                    {
+                      "name": "receita",
+                      "expression": "`receita`"
+                    }
+                  ],
+                  "disaggregated": true,
+                  "filters": [
+                    {
+                      "expression": "`classificacao_preco` = 'MAIS_CARO_QUE_TODOS'"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "nome_produto",
+                    "displayName": "Produto"
+                  },
+                  {
+                    "fieldName": "categoria",
+                    "displayName": "Categoria"
+                  },
+                  {
+                    "fieldName": "nosso_preco",
+                    "displayName": "Nosso preço",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "preco_maximo_concorrentes",
+                    "displayName": "Maior preço concorrente",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "diferenca_vs_media",
+                    "displayName": "Diferença vs média",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "receita",
+                    "displayName": "Receita no período",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "BRL",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Alerta: produtos mais caros que todos os concorrentes"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "fonte",
+            "multilineTextboxSpec": {
+              "lines": [
+                "*Fonte: ecommerce.gold · pipeline diário*"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 1
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F8FA",
+        "dark": "#1F272D"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#11171C"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#11171C"
+      },
+      "fontColor": {
+        "light": "#11171C",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#2272B4",
+        "dark": "#8ACAFF"
+      },
+      "visualizationColors": [
+        "#0072B2",
+        "#E69F00",
+        "#009E73",
+        "#CC79A7",
+        "#56B4E9",
+        "#D55E00",
+        "#F0E442"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}
