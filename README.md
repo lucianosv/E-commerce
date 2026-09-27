@@ -150,6 +150,36 @@ git --version
 
 ## 🔧 Setup Inicial
 
+
+### 📌 Nota sobre Unity Catalog
+
+A estrutura de 3 níveis do Unity Catalog neste projeto:
+
+```
+ecommerce                    # Catálogo (nível 1)
+├── bronze                   # Schema (nível 2)
+│   ├── vendas              # Tabela (nível 3)
+│   ├── produtos
+│   ├── clientes
+│   ├── preco_competidores
+│   └── estados_ibge
+├── silver
+│   ├── vendas
+│   ├── produtos
+│   ├── clientes
+│   └── preco_competidores
+└── gold
+    ├── vendas_temporais
+    ├── vendas_produtos
+    ├── clientes_segmentacao
+    ├── precos_competitividade
+    ├── vendas_detalhadas
+    └── qualidade_dados
+```
+
+**Sempre use a notação completa** `catalogo.schema.tabela` em consultas SQL.
+
+---
 ### 1. Autenticação no Databricks
 
 ```bash
@@ -212,12 +242,25 @@ databricks jobs runs list -p ecommerce
 ### 1. Verificar Tabelas
 
 ```sql
+-- Usar o catálogo ecommerce
 USE CATALOG ecommerce;
-SHOW TABLES IN bronze;  -- 5 tabelas
-SHOW TABLES IN silver;  -- 4 tabelas
-SHOW TABLES IN gold;    -- 6 tabelas
 
-SELECT COUNT(*) FROM bronze.vendas;  -- 3020
+-- Bronze: 5 tabelas (vendas, produtos, clientes, preco_competidores, estados_ibge)
+SHOW TABLES IN bronze;
+
+-- Silver: 4 tabelas (vendas, produtos, clientes, preco_competidores)
+SHOW TABLES IN silver;
+
+-- Gold: 6 tabelas (vendas_temporais, vendas_produtos, clientes_segmentacao, 
+--                   precos_competitividade, vendas_detalhadas, qualidade_dados)
+SHOW TABLES IN gold;
+
+-- Validar contagens
+SELECT COUNT(*) FROM ecommerce.bronze.vendas;              -- Esperado: 3020
+SELECT COUNT(*) FROM ecommerce.bronze.produtos;            -- Esperado: 215
+SELECT COUNT(*) FROM ecommerce.bronze.clientes;            -- Esperado: 50
+SELECT COUNT(*) FROM ecommerce.bronze.preco_competidores;  -- Esperado: 728
+SELECT COUNT(*) FROM ecommerce.bronze.estados_ibge;        -- Esperado: 27
 ```
 
 ### 2. Validar Pipeline
