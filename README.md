@@ -347,13 +347,6 @@ databricks jobs run-now "Pipeline E-commerce" -p ecommerce
 **Causa**: Comentários não aplicados nas tabelas gold
 **Solução**: O Job agora inclui task `preparar_dados_para_ia` que aplica comentários automaticamente
 
-### Tabela gold.qualidade_dados não foi criada
-**Causa**: Pipeline Lakeflow não processou o arquivo `pipeline/gold/qualidade_dados.sql`
-**Solução**: Executar pipeline update manualmente:
-```bash
-databricks pipelines start-update bf308547-b804-4997-aed4-522cb695cc28 -p ecommerce
-```
-
 ---
 
 ## 📚 Recursos Adicionais

@@ -38,6 +38,11 @@ TESTES = {
     "gold.vendas_detalhadas: id_venda único":
         "SELECT id_venda FROM gold.vendas_detalhadas GROUP BY id_venda HAVING COUNT(*) > 1",
 
+    "gold.qualidade_dados: uma linha por regra":
+        "SELECT regra FROM gold.qualidade_dados GROUP BY regra HAVING COUNT(*) > 1",
+    "gold.qualidade_dados: severidade válida":
+        "SELECT * FROM gold.qualidade_dados WHERE severidade NOT IN ('ALERTA', 'INFORMATIVO', 'CORRIGIDO')",
+
     # Não nulo
     "silver.vendas: campos obrigatórios preenchidos":
         "SELECT * FROM silver.vendas WHERE id_venda IS NULL OR data_venda IS NULL OR id_cliente IS NULL "

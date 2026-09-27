@@ -89,9 +89,11 @@ Duas camadas, cada uma no lugar certo:
 Job `Pipeline E-commerce` (`resources/pipeline_ecommerce.job.yml`), serverless, todo dia às 06:00 (America/Sao_Paulo), e-mail em caso de falha:
 
 ```
-ingestao_bronze → transformacao (pipeline: silver + gold) → testes_qualidade
+ingestao_bronze → transformacao (pipeline: silver + gold) → testes_qualidade → documentar_para_genie
 ```
 
+
+A quarta task (`documentar_para_genie`) roda o notebook `aula-04-genie/01_preparar_dados_para_ia.sql`, que reaplica os comentarios em todas as tabelas e colunas gold - comentarios que o Genie Space (seção 7) precisa para gerar SQL correto e que o `CREATE OR REPLACE` das materialized views remove a cada refresh.
 Parâmetro do Job: `catalogo` (padrão `ecommerce`). O pipeline usa a mesma variável do bundle.
 
 ## 7. Consumo

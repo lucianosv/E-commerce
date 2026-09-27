@@ -1,5 +1,6 @@
-# Pipeline diário: data lake → bronze (Aula 2) → silver → gold → testes (Aula 3) → documentação (Aula 4).
-# Na Aula 2 o Job é criado à mão pela interface, só com a ingestão; na Aula 3 ele vira código aqui, completo.
+# Pipeline diário: data lake → bronze (Aula 2) → silver → gold (Aula 3) → testes → documentação (Aula 4).
+# A definicão inline em databricks.yml é a fonte da verdade; este arquivo espelha a mesma estrutura
+# para referência e documentação.
 resources:
   jobs:
     pipeline_ecommerce:
@@ -21,31 +22,33 @@ resources:
           default: ${var.catalogo}
 
       tasks:
+        # 1. Bronze: ingestão dos dados do data lake (S3/Supabase) para ecommerce.bronze.*
         - task_key: ingestao_bronze
           notebook_task:
-            # o Job roda a versão completa; 01_ingestao_bronze.py é o notebook com lacunas da aula
-            notebook_path: ../aula-02-python-engenharia/01_ingestao_bronze_gabarito.py
+            notebook_path: ./pipeline/bronze/01_ingestao_bronze_gabarito.py
 
-        - task_key: silver
+        # 2. Silver + Gold: pipeline SDP que processa bronze -> silver (tabelas) e
+        #    silver -> gold (materialized views) com expectations e deduplicacao
+        - task_key: run_pipeline
           depends_on:
             - task_key: ingestao_bronze
-          notebook_task:
-            notebook_path: ../aula-03-claude-code/01_silver.py
+          pipeline_task:
+            pipeline_id: bf308547-b804-4997-aed4-522cb695cc28
 
-        - task_key: gold
+        # 3. Testes: validação de qualidade das tabelas silver e gold
+        - task_key: run_tests
           depends_on:
-            - task_key: silver
+            - task_key: run_pipeline
           notebook_task:
-            notebook_path: ../aula-03-claude-code/02_gold.sql
+            notebook_path: ./testes/04_testes_qualidade.py
+            base_parameters:
+              catalogo: ecommerce
 
-        - task_key: testes_qualidade
+        # 4. Documentação: aplica comentários nas tabelas gold para o Genie Space
+        - task_key: preparar_dados_para_ia
           depends_on:
-            - task_key: gold
+            - task_key: run_tests
           notebook_task:
-            notebook_path: ../aula-03-claude-code/testes/03_testes_qualidade.py
-
-        - task_key: documentar_para_genie
-          depends_on:
-            - task_key: testes_qualidade
-          notebook_task:
-            notebook_path: ../aula-04-genie/01_preparar_dados_para_ia.sql
+            notebook_path: ./notebooks/aula-04/01_preparar_dados_para_ia.sql
+            base_parameters:
+              catalogo: ecommerce
