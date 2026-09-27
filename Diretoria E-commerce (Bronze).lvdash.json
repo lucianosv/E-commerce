@@ -1388,6 +1388,7 @@
         "#F0E442"
       ],
       "widgetHeaderAlignment": "LEFT"
-    }
+    },
+    "applyModeEnabled": false
   }
 }

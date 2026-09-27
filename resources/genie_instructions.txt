@@ -1,0 +1,165 @@
+# Configuração do Genie Space: Diretoria E-commerce
+
+## INSTRUÇÕES GERAIS (General Instructions)
+
+### Período e contexto dos dados
+- Os dados cobrem o período de **13 de dezembro de 2025 a 11 de janeiro de 2026**.
+- **NUNCA** use `CURRENT_DATE()`, `TODAY()` ou "ontem" nas consultas. Os dados terminam em 11/01/2026.
+
+### Métricas disponíveis
+- **Receita**: existe e está em todas as tabelas relevantes (receita bruta em R$).
+- **Lucro**: NÃO existe nos dados. Se perguntarem sobre lucro, margem ou custo, responda que esses dados não estão disponíveis, apenas receita.
+
+### Regras de negócio
+
+#### Contagem de produtos
+- Produtos diferentes podem ter o mesmo nome.
+- Para contar produtos únicos, sempre use `COUNT(DISTINCT id_produto)`, nunca conte por `nome_produto`.
+
+#### Ticket médio
+- **NUNCA** calcule ticket médio com `AVG(ticket_medio)`.
+- Ticket médio correto = `SUM(receita) / SUM(total_vendas)`.
+- Isso porque ticket_medio pré-calculado em algumas tabelas é a média daquela linha específica.
+
+#### Clientes únicos
+- A coluna `clientes_unicos` em vendas_temporais é o total NAQUELA linha (dia/hora/canal).
+- **NÃO somar** `clientes_unicos` entre linhas.
+- Para clientes únicos no período, use `COUNT(DISTINCT id_cliente)` de gold.clientes_segmentacao ou gold.vendas_detalhadas.
+
+#### Dia da semana
+- Ao responder "qual dia da semana vende mais", mostre **também a média por dia**.
+- O período tem 5 sábados/domingos mas apenas 4 de cada dia útil, então o total pode enganar.
+- Use: `ROUND(SUM(receita) / COUNT(DISTINCT data), 2) AS receita_media_por_dia`.
+
+### Competitividade
+- Temos dados de **4 concorrentes**: Mercado Livre, Amazon, Magalu e Shopee.
+- Alguns preços de concorrente estão marcados como "suspeitos" (possível promoção relâmpago ou erro de coleta).
+- Preços suspeitos continuam em todas as contas, mas a coluna `possui_preco_suspeito` alerta que o preço precisa ser confirmado antes de reagir.
+
+### Segmentos de clientes
+- **VIP**: receita >= R$ 22.000
+- **TOP_TIER**: receita entre R$ 17.000 e R$ 21.999,99
+- **REGULAR**: receita < R$ 17.000
+
+---
+
+## EXEMPLOS SQL (SQL Examples)
+
+Esses são pares pergunta → SQL correto que o Genie deve seguir como referência:
+
+### 1. Receita total do período
+```sql
+SELECT SUM(receita) AS receita_total 
+FROM ecommerce.gold.vendas_temporais
+```
+
+### 2. Canal que vende mais
+```sql
+SELECT canal_venda, 
+       SUM(total_vendas) AS vendas, 
+       SUM(receita) AS receita,
+       ROUND(SUM(receita) / SUM(total_vendas), 2) AS ticket_medio
+FROM ecommerce.gold.vendas_temporais
+GROUP BY canal_venda 
+ORDER BY receita DESC
+```
+
+### 3. Top 5 produtos por receita
+```sql
+SELECT ranking_receita, nome_produto, categoria, receita
+FROM ecommerce.gold.vendas_produtos
+WHERE ranking_receita <= 5 
+ORDER BY ranking_receita
+```
+
+### 4. Categoria com mais receita
+```sql
+SELECT categoria, SUM(receita) AS receita
+FROM ecommerce.gold.vendas_produtos
+GROUP BY categoria 
+ORDER BY receita DESC 
+LIMIT 3
+```
+
+### 5. Top 5 melhores clientes
+```sql
+SELECT ranking_receita, nome_cliente, estado, receita
+FROM ecommerce.gold.clientes_segmentacao
+WHERE ranking_receita <= 5 
+ORDER BY ranking_receita
+```
+
+### 6. Clientes VIP e percentual da receita
+```sql
+SELECT COUNT(*) FILTER (WHERE segmento_cliente = 'VIP') AS clientes_vip,
+       SUM(receita) FILTER (WHERE segmento_cliente = 'VIP') AS receita_vip,
+       ROUND(SUM(receita) FILTER (WHERE segmento_cliente = 'VIP') * 100 / SUM(receita), 1) AS pct_receita
+FROM ecommerce.gold.clientes_segmentacao
+```
+
+### 7. Região com mais receita
+```sql
+SELECT regiao, COUNT(*) AS clientes, SUM(receita) AS receita
+FROM ecommerce.gold.clientes_segmentacao
+GROUP BY regiao 
+ORDER BY receita DESC
+```
+
+### 8. Dia da semana que vende mais (com média)
+```sql
+SELECT dia_semana, 
+       SUM(receita) AS receita, 
+       COUNT(DISTINCT data) AS dias_no_periodo,
+       ROUND(SUM(receita) / COUNT(DISTINCT data), 2) AS receita_media_por_dia
+FROM ecommerce.gold.vendas_temporais
+GROUP BY dia_semana, dia_semana_num 
+ORDER BY receita_media_por_dia DESC
+```
+
+### 9. Produtos mais caros que todos os concorrentes, por categoria
+```sql
+SELECT categoria, COUNT(*) AS produtos
+FROM ecommerce.gold.precos_competitividade
+WHERE classificacao_preco = 'MAIS_CARO_QUE_TODOS'
+GROUP BY categoria 
+ORDER BY produtos DESC
+```
+
+### 10. Top 10 produtos em receita que estão mais caros que a média
+```sql
+SELECT v.ranking_receita, 
+       v.nome_produto, 
+       p.nosso_preco, 
+       p.preco_medio_concorrentes, 
+       p.diferenca_pct_vs_media
+FROM ecommerce.gold.vendas_produtos v
+JOIN ecommerce.gold.precos_competitividade p ON v.id_produto = p.id_produto
+WHERE v.ranking_receita <= 10 AND p.diferenca_pct_vs_media > 0
+ORDER BY v.ranking_receita
+```
+
+---
+
+## JOINS
+
+Relacionamento entre tabelas:
+
+- **vendas_produtos.id_produto = precos_competitividade.id_produto** (um para um)
+  - Use para cruzar dados de vendas com dados de preços competitivos
+
+---
+
+## PERGUNTAS DE EXEMPLO (Sample Questions)
+
+1. Qual foi a receita total do período?
+2. Qual canal vende mais: e-commerce ou loja física?
+3. Quais são os 5 produtos que mais faturaram?
+4. Quantos clientes VIP temos e quanto eles representam da receita?
+5. Qual região do Brasil gera mais receita?
+6. Quantos produtos estão mais caros que todos os concorrentes?
+
+---
+
+## WAREHOUSE
+
+- SQL Warehouse: **Serverless Starter Warehouse** (ou outro warehouse serverless disponível)

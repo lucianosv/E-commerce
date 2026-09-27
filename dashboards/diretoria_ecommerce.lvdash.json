@@ -3,18 +3,6 @@
     {
       "name": "ds_vendas",
       "displayName": "Vendas (bronze)",
-      "columns": [
-        {
-          "displayName": "Vendas",
-          "description": "Quantidade de vendas",
-          "expression": "SUM(`total_vendas`)"
-        },
-        {
-          "displayName": "Ticket médio",
-          "description": "Receita dividida pelo número de vendas",
-          "expression": "SUM(`receita`) / SUM(`total_vendas`)"
-        }
-      ],
       "queryLines": [
         "SELECT\n",
         "  DATE(v.data_venda)                        AS data,\n",
@@ -26,6 +14,18 @@
         "FROM ecommerce.bronze.vendas v\n",
         "LEFT JOIN ecommerce.bronze.produtos p ON v.id_produto = p.id_produto\n",
         "GROUP BY ALL\n"
+      ],
+      "columns": [
+        {
+          "displayName": "Vendas",
+          "description": "Quantidade de vendas",
+          "expression": "SUM(`total_vendas`)"
+        },
+        {
+          "displayName": "Ticket médio",
+          "description": "Receita dividida pelo número de vendas",
+          "expression": "SUM(`receita`) / SUM(`total_vendas`)"
+        }
       ]
     },
     {
@@ -93,8 +93,6 @@
     {
       "name": "vendas",
       "displayName": "Vendas",
-      "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1",
       "layout": [
         {
           "widget": {
@@ -598,13 +596,13 @@
             "height": 6
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
     },
     {
       "name": "clientes",
       "displayName": "Clientes",
-      "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1",
       "layout": [
         {
           "widget": {
@@ -916,13 +914,13 @@
             "height": 8
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
     },
     {
       "name": "pricing",
       "displayName": "Pricing",
-      "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1",
       "layout": [
         {
           "widget": {
@@ -996,12 +994,12 @@
                       "expression": "COUNT(`id_produto`)"
                     }
                   ],
-                  "disaggregated": false,
                   "filters": [
                     {
                       "expression": "`classificacao_preco` = 'MAIS_CARO_QUE_TODOS'"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
@@ -1253,12 +1251,12 @@
                       "expression": "`receita`"
                     }
                   ],
-                  "disaggregated": true,
                   "filters": [
                     {
                       "expression": "`classificacao_preco` = 'MAIS_CARO_QUE_TODOS'"
                     }
-                  ]
+                  ],
+                  "disaggregated": true
                 }
               }
             ],
@@ -1353,7 +1351,9 @@
             "height": 1
           }
         }
-      ]
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
     }
   ],
   "uiSettings": {
@@ -1388,6 +1388,7 @@
         "#F0E442"
       ],
       "widgetHeaderAlignment": "LEFT"
-    }
+    },
+    "applyModeEnabled": false
   }
 }
