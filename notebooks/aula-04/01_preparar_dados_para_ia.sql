@@ -1,41 +1,20 @@
 -- Databricks notebook source
--- MAGIC %md
--- MAGIC # Aula 4 · Preparar o dado para a IA
--- MAGIC ### "Todo mundo quer IA. Ninguém tem o dado organizado."
--- MAGIC
--- MAGIC O Genie lê o **nome** e o **comentário** de cada tabela e coluna para decidir qual SQL escrever. Uma coluna chamada `receita` sem comentário obriga o Genie a adivinhar: é bruta ou líquida? Inclui frete? Em reais?
--- MAGIC
--- MAGIC Este notebook documenta as 4 tabelas gold. É o trabalho menos glamoroso da imersão, e é o que faz o Genie acertar.
--- MAGIC
--- MAGIC > Este notebook também roda como **última tarefa do Job diário**: como a gold é recriada todo dia (`CREATE OR REPLACE`), os comentários precisam ser reaplicados depois dela.
-
--- COMMAND ----------
-
--- MAGIC %python
--- MAGIC dbutils.widgets.text("catalogo", "ecommerce")
-
--- COMMAND ----------
+-- Aula 4 · Preparar o dado para a IA
+-- "Todo mundo quer IA. Ninguém tem o dado organizado."
+--
+-- O Genie lê o nome e o comentário de cada tabela e coluna para decidir qual SQL escrever.
+-- Este notebook documenta as 4 tabelas gold para o Genie.
 
 USE CATALOG IDENTIFIER(:catalogo);
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Antes: o que o Genie enxerga hoje
--- MAGIC
--- MAGIC Veja a coluna `comment`: vazia. É com isso que a IA teria de trabalhar.
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Antes: o que o Genie enxerga hoje (veja a coluna comment: vazia)
+-- -----------------------------------------------------------------------------
 DESCRIBE TABLE gold.clientes_segmentacao;
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Vendas: `gold.vendas_temporais`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Vendas: gold.vendas_temporais
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.vendas_temporais IS
   'Vendas agregadas por dia, hora e canal. Use para perguntas de receita, número de vendas e ticket médio ao longo do tempo, por dia da semana, por hora ou por canal. Inclui todas as vendas, mesmo de produtos não cadastrados. Período dos dados: 13/12/2025 a 11/01/2026.';
 
@@ -49,13 +28,9 @@ COMMENT ON COLUMN gold.vendas_temporais.itens_vendidos IS 'Quantidade de unidade
 COMMENT ON COLUMN gold.vendas_temporais.receita IS 'Receita bruta em reais (R$) = quantidade × preço unitário. Somar para totalizar.';
 COMMENT ON COLUMN gold.vendas_temporais.clientes_unicos IS 'Clientes distintos NAQUELA linha (dia, hora, canal). Não somar entre linhas: para clientes únicos no período use gold.clientes_segmentacao.';
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Vendas: `gold.vendas_produtos`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Vendas: gold.vendas_produtos
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.vendas_produtos IS
   'Desempenho de vendas por produto no período: receita, itens vendidos, ticket médio e rankings. Use para "produtos mais vendidos", "receita por categoria" e "receita por marca". Vendas de produtos fora do catálogo aparecem com nome "Produto não cadastrado".';
 
@@ -72,13 +47,9 @@ COMMENT ON COLUMN gold.vendas_produtos.ticket_medio IS 'Receita média por venda
 COMMENT ON COLUMN gold.vendas_produtos.ranking_receita IS 'Posição do produto no ranking geral de receita (1 = maior receita).';
 COMMENT ON COLUMN gold.vendas_produtos.ranking_na_categoria IS 'Posição do produto no ranking de receita dentro da própria categoria (1 = maior).';
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Clientes: `gold.clientes_segmentacao`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Clientes: gold.clientes_segmentacao
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.clientes_segmentacao IS
   'Uma linha por cliente com receita, compras, ticket médio, região e segmento. Use para perguntas sobre melhores clientes, clientes VIP, segmentos, estados e regiões.';
 
@@ -95,13 +66,9 @@ COMMENT ON COLUMN gold.clientes_segmentacao.ultima_compra IS 'Data da compra mai
 COMMENT ON COLUMN gold.clientes_segmentacao.segmento_cliente IS 'Segmento pela receita no período: VIP (a partir de R$ 22.000), TOP_TIER (R$ 17.000 a R$ 21.999,99) ou REGULAR (abaixo de R$ 17.000).';
 COMMENT ON COLUMN gold.clientes_segmentacao.ranking_receita IS 'Posição do cliente no ranking de receita (1 = cliente que mais gerou receita).';
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Pricing: `gold.precos_competitividade`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Pricing: gold.precos_competitividade
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.precos_competitividade IS
   'Nosso preço comparado ao de 4 concorrentes (Mercado Livre, Amazon, Magalu e Shopee), uma linha por produto monitorado. Use para perguntas de competitividade, produtos caros ou baratos em relação ao mercado.';
 
@@ -120,15 +87,9 @@ COMMENT ON COLUMN gold.precos_competitividade.classificacao_preco IS 'Posição 
 COMMENT ON COLUMN gold.precos_competitividade.receita IS 'Receita do produto no período, em reais (R$). Zero se nunca vendeu.';
 COMMENT ON COLUMN gold.precos_competitividade.itens_vendidos IS 'Unidades vendidas do produto no período.';
 
--- COMMAND ----------
-
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Vendas detalhadas: `gold.vendas_detalhadas`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Vendas detalhadas: gold.vendas_detalhadas
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.vendas_detalhadas IS
   'Venda por venda: cada linha é um pedido com calendário, canal, produto, categoria, marca, cliente, UF, região, segmento, receita e marcações de qualidade. Use para filtros cruzados no dashboard e perguntas do Genie que cruzam diretorias.';
 
@@ -155,13 +116,9 @@ COMMENT ON COLUMN gold.vendas_detalhadas.quantidade IS 'Quantidade de unidades v
 COMMENT ON COLUMN gold.vendas_detalhadas.preco_unitario IS 'Preço unitário do produto na venda, em reais (R$).';
 COMMENT ON COLUMN gold.vendas_detalhadas.receita IS 'Receita da venda = quantidade × preço unitário, em reais (R$).';
 
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC ## Qualidade dos dados: `gold.qualidade_dados`
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Qualidade dos dados: gold.qualidade_dados
+-- -----------------------------------------------------------------------------
 COMMENT ON TABLE gold.qualidade_dados IS
   'Placar de qualidade dos dados: uma linha por regra, com quantas linhas e quanta receita cada problema afeta. Use para perguntas sobre confiabilidade dos números, vendas de produtos não cadastrados e preços suspeitos de concorrentes.';
 
@@ -171,15 +128,7 @@ COMMENT ON COLUMN gold.qualidade_dados.severidade IS 'ALERTA (resolver na origem
 COMMENT ON COLUMN gold.qualidade_dados.linhas_afetadas IS 'Quantidade de linhas da tabela que caem na regra.';
 COMMENT ON COLUMN gold.qualidade_dados.receita_afetada IS 'Receita em reais (R$) das vendas afetadas. Vazia quando a regra não envolve vendas.';
 
-
--- MAGIC %md
--- MAGIC ## Depois: o mesmo `DESCRIBE`, agora com contexto
-
--- COMMAND ----------
-
+-- -----------------------------------------------------------------------------
+-- Depois: o mesmo DESCRIBE, agora com contexto
+-- -----------------------------------------------------------------------------
 DESCRIBE TABLE gold.clientes_segmentacao;
-
--- COMMAND ----------
-
--- MAGIC %md
--- MAGIC **Próximo passo:** criar o Genie space (veja o `README.md` desta pasta). As instruções, as perguntas de exemplo e o SQL de referência estão em `genie/diretoria_ecommerce.geniespace.json`.
